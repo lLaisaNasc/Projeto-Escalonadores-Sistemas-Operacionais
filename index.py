@@ -1,5 +1,4 @@
 from tabulate import tabulate
-import matplotlib.pyplot as plt
 
 # -- Ler o arquivo --
 doc = open('teste.txt', 'r', encoding='utf8')
@@ -10,9 +9,10 @@ quantum = 0
 prioridade_maior = 0
 prioridade_menor = 0
 processo_dados = []
+execucoes = []
 
 # -- Idenfica o escalonamento --
-def identifica_escalonamento():
+def identifica_escalonamento(nome_escalonamento):
     algoritmos = ['FIRST COME FIRST SERVED', 'FCFS', 'SHORTEST JOB FIRST', 'SJF', 'ROUND ROBIN', 'RR', 'PRIORITY']
 
     if nome_escalonamento in algoritmos:
@@ -44,32 +44,56 @@ def calcula_media_tempo_espera(tempos_espera, total_processos):
 
 
 # -- Gráfico de Gantt --
-# def criar_linha_do_tempo(tempo_conclusao, id_processo, tempo_cpu):
-#     # Crie o gráfico de Gantt
-#     fig, ax = plt.subplots(figsize=(8, 4))
+def registrar_execucao(pid, inicio, fim):
+    return {'pid': pid, 'inicio': inicio, 'fim': fim}
 
-#     for i, processo in enumerate(id_processo):
-#         ax.barh(processo, tempo_conclusao[i], label=f"{tempo_conclusao[i]} unidades de tempo")
+def calcular_tempo_total(execucoes):
+    tempo_total = 0
+    for execucao in execucoes:
+        tempo_total = max(tempo_total, execucao['fim'])
+    return tempo_total
 
-#     # Defina os rótulos dos eixos
-#     ax.set_xlabel('Tempo')
-#     ax.set_ylabel('ID do Processo')
-#     ax.set_title('Gráfico de Gantt')
+def criar_linha_do_tempo(execucoes):
+    tempo_total = calcular_tempo_total(execucoes)
+    processos = sorted(execucoes, key=lambda x: x['inicio'])
 
-#     # Defina a escala do eixo x
-#     ax.set_xlim(0, max(tempo_conclusao) + 2)
+    tamanho_linha = tempo_total + sum(len(str(execucao['fim'])) for execucao in execucoes) + 1
+    linha_pids = [' '] * tamanho_linha
+    linha_superior = [' '] * tamanho_linha
+    linha_inferior = [' '] * tamanho_linha
 
-#     # Adicione uma legenda
-#     ax.legend()
+    for processo in processos:
+        pid = processo['pid']
+        inicio = processo['inicio']
+        fim = processo['fim']
 
-#     # Exiba o gráfico de Gantt
-#     plt.grid(True)
-#     plt.show()
+        # Centralizar PID
+        espaço_pid = fim - inicio
+        posicao_inicio_pid = inicio + (espaço_pid - len(str(pid))) // 2
 
+        for idx, char in enumerate(str(pid)):
+            linha_pids[posicao_inicio_pid + idx] = char
 
-    # with open('linhadotempo.txt', 'w') as arquivo:
-    #     for tempo, processo in zip(id_processo, tempo_conclusao):
-    #         arquivo.write(f"{tempo}: {processo}\n")
+        linha_superior[inicio] = '|'
+        for i in range(inicio + 1, fim):
+            linha_superior[i] = '-'
+        linha_superior[fim] = '|'
+
+    # Preenchendo os números na linha inferior
+    tempos_unicos = sorted(set([e['inicio'] for e in execucoes] + [e['fim'] for e in execucoes]))
+    for tempo in tempos_unicos:
+        str_tempo = str(tempo)
+        if linha_superior[tempo] == '|':
+            for idx, char in enumerate(str_tempo):
+                linha_inferior[tempo + idx] = char
+
+    linha_tempo = []
+
+    linha_tempo.append(''.join(linha_pids))
+    linha_tempo.append(''.join(linha_superior))
+    linha_tempo.append(''.join(linha_inferior))
+
+    return '\n'.join(linha_tempo)
 
 # -- Algoritmo FCFS --
 def utiliza_first_come_first_served():
@@ -84,10 +108,12 @@ def utiliza_first_come_first_served():
     tempos_espera = []
 
     for id_processo, tempo_chegada, tempo_cpu in processos_inteiro:
-
+        tempo_inicio = tempo_conclusao
         tempo_conclusao += tempo_cpu
         tempo_sistema = tempo_conclusao - tempo_chegada
         tempo_espera = tempo_sistema - tempo_cpu
+
+        execucoes.append(registrar_execucao(id_processo, tempo_inicio, tempo_conclusao))
 
         tempos_sistema.append(tempo_sistema)
         tempos_espera.append(tempo_espera)
@@ -105,8 +131,8 @@ def utiliza_first_come_first_served():
         arquivo.write("\n")
         arquivo.write(media_tempo_espera)
 
-
-    # criar_linha_do_tempo([4, 7, 8, 10, 15], ['1', '2', '3', '4', '5'], ['4', '3', '1', '2', '3'])
+    linha_tempo = criar_linha_do_tempo(execucoes)
+    print(linha_tempo)
 
 # -- Algoritmo JSF ---
 def utilizar_sjf():
@@ -224,8 +250,8 @@ def utiliza_round_robin():
 def utiliza_prioridade():
     ...
 
-identifica_escalonamento()
-#utiliza_first_come_first_served()
+identifica_escalonamento(nome_escalonamento.upper())
+utiliza_first_come_first_served()
 #utilizar_sjf()
-utiliza_round_robin()
+#utiliza_round_robin()
 
