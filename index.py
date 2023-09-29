@@ -17,10 +17,17 @@ def identifica_escalonamento(nome_escalonamento):
 
     if nome_escalonamento in algoritmos:
         posicao = algoritmos.index(nome_escalonamento)
+
+        if posicao == 0 or posicao == 1:
+            utiliza_first_come_first_served()
+        elif posicao == 2 or posicao == 2:
+            utilizar_sjf()
+        elif posicao == 4 or posicao == 5:
+            utiliza_round_robin()
+        elif posicao == 6:
+            utiliza_prioridade()
     else:
          print('Não foi possível identificar o algoritmo de escalonamento! :(')
-
-    return posicao
 
 # -- Calcula tempo médio no sistema --
 def calcula_media_tempo_sistema(tempos_no_sistema, total_processos):
@@ -29,7 +36,7 @@ def calcula_media_tempo_sistema(tempos_no_sistema, total_processos):
     for tempo in tempos_no_sistema:
         tempo_soma += tempo
     
-    media = tempo_soma / total_processos
+    media = round((tempo_soma / total_processos), 2)
     return "Media de tempo no sistema: " + str(media)
 
 # -- Calcula tempo médio de espera --
@@ -39,7 +46,7 @@ def calcula_media_tempo_espera(tempos_espera, total_processos):
     for tempo in tempos_espera:
         tempo_soma += tempo
     
-    media = tempo_soma / total_processos
+    media = round((tempo_soma / total_processos), 2)
     return "Media de tempo de espera: " + str(media)
 
 
@@ -124,15 +131,18 @@ def utiliza_first_come_first_served():
     media_tempo_espera = calcula_media_tempo_espera(tempos_espera, len(processos_inteiro))
 
     tabela_formatada = tabulate(tabela_dados, headers="firstrow", tablefmt="grid")
+    linha_tempo = criar_linha_do_tempo(execucoes)
+
     with open("saida.txt", "w") as arquivo:
         arquivo.write(tabela_formatada)
+        arquivo.write("\n\n")
+        arquivo.write("Grafico de Gantt")
         arquivo.write("\n")
+        arquivo.write(linha_tempo)
+        arquivo.write("\n\n")
         arquivo.write(media_tempo_sistema)
         arquivo.write("\n")
         arquivo.write(media_tempo_espera)
-
-    linha_tempo = criar_linha_do_tempo(execucoes)
-    print(linha_tempo)
 
 # -- Algoritmo JSF ---
 def utilizar_sjf():
@@ -248,10 +258,61 @@ def utiliza_round_robin():
 
 # -- Algoritmo Priority ---
 def utiliza_prioridade():
-    ...
+    prioridades = doc.readline().split()
+    menor_prioridade = eval(prioridades[0].strip())
+    maior_prioridade = eval(prioridades[1].strip())
+
+    processo_dados = [linha.replace('\u00a0', '').strip() for linha in doc.readlines() if linha.strip() != ""]
+    processos = [[eval(dado) for dado in linha.split()] for linha in processo_dados]
+    tabela_dados = [["Pid", "PR", "AT", "BT", "CT", "TAT", "WT"]]
+
+    tempo_atual = 0
+    fila = []
+
+    while processos or fila:
+        processos_chegados = [p for p in processos if p[2] <= tempo_atual]
+        for p in processos_chegados:
+            p.append(p[3]) 
+            fila.append(p)
+            processos.remove(p)
+
+        if fila: 
+            if maior_prioridade > menor_prioridade: 
+                fila = sorted(fila, key=lambda x: x[1], reverse=True) 
+            elif maior_prioridade < menor_prioridade: 
+                fila = sorted(fila, key=lambda x: x[1]) 
+
+            processo = fila.pop(0)
+            id_processo, prioridade, tempo_chegada, tempo_bt, tempo_cpu_original = processo
+            
+            if processos:
+                tempo_atual += 1
+                tempo_bt -= 1
+            elif not processos:
+                tempo_atual += tempo_bt
+                tempo_bt = 0
+            
+            if tempo_bt > 0:
+                fila.append([id_processo, prioridade, tempo_chegada, tempo_bt, tempo_cpu_original])
+            else:
+                tempo_conclusao = tempo_atual
+                tempo_sistema = tempo_conclusao - tempo_chegada
+                tempo_espera = tempo_sistema - tempo_cpu_original
+                tabela_dados.append([id_processo, prioridade, tempo_chegada, tempo_cpu_original, tempo_conclusao, tempo_sistema, tempo_espera])
+        else:
+            tempo_atual += 1 
+
+    media_tempo_sistema = calcula_media_tempo_sistema([row[5] for row in tabela_dados[1:]], len(tabela_dados) - 1)
+    media_tempo_espera = calcula_media_tempo_espera([row[6] for row in tabela_dados[1:]], len(tabela_dados) - 1)
+
+    tabela_formatada = tabulate(tabela_dados, headers="firstrow", tablefmt="grid")
+    with open("saida.txt", "w") as arquivo:
+        arquivo.write(tabela_formatada)
+        arquivo.write("\n")
+        arquivo.write(media_tempo_sistema)
+        arquivo.write("\n")
+        arquivo.write(media_tempo_espera)
 
 identifica_escalonamento(nome_escalonamento.upper())
-utiliza_first_come_first_served()
-#utilizar_sjf()
-#utiliza_round_robin()
+
 
