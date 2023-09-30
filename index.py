@@ -59,56 +59,11 @@ def calcula_media_tempo_espera(tempos_espera, total_processos):
 def registrar_execucao(pid, inicio, fim):
     return {'pid': pid, 'inicio': inicio, 'fim': fim}
 
-def calcular_tempo_total(execucoes):
-    tempo_total = 0
+def exibir_linha_do_tempo(execucoes):
+    timeline = ""
     for execucao in execucoes:
-        tempo_total = max(tempo_total, execucao['fim'])
-    return tempo_total
-
-def criar_linha_do_tempo(execucoes):
-    tempo_total = calcular_tempo_total(execucoes)
-    processos = sorted(execucoes, key=lambda x: x['inicio'])
-
-    tamanho_linha = tempo_total + sum(len(str(execucao['fim'])) for execucao in execucoes) + 1
-    linha_pids = [' '] * tamanho_linha
-    linha_superior = [' '] * tamanho_linha
-    linha_inferior = [' '] * tamanho_linha
-
-    for processo in processos:
-        pid = processo['pid']
-        inicio = processo['inicio']
-        fim = processo['fim']
-
-        # Centralizar PID
-        espaço_pid = fim - inicio
-        posicao_inicio_pid = inicio + (espaço_pid - len(str(pid))) // 2
-
-        for idx, char in enumerate(str(pid)):
-            linha_pids[posicao_inicio_pid + idx] = char
-
-        linha_superior[inicio] = '|'
-        linha_superior[fim] = '|'
-        for i in range(inicio + 1, fim):
-            linha_superior[i] = '-'
-
-    # Preenchendo os números na linha inferior
-    pos_atual = 0
-    for tempo in range(tempo_total + 1):
-        str_tempo = str(tempo)
-        if linha_superior[pos_atual] == '|':
-            for idx, char in enumerate(str_tempo):
-                linha_inferior[pos_atual + idx] = char
-            pos_atual += len(str_tempo)
-        else:
-            pos_atual += 1
-
-    linha_tempo = []
-
-    linha_tempo.append(''.join(linha_pids))
-    linha_tempo.append(''.join(linha_superior))
-    linha_tempo.append(''.join(linha_inferior))
-
-    return '\n'.join(linha_tempo)
+        timeline += f" | P{execucao['pid']} ({execucao['inicio']} - {execucao['fim']})"
+    return timeline + " |"
 
 # -- Função que escreve no arquivo --
 
@@ -182,10 +137,13 @@ def utiliza_first_come_first_served():
         tempos_sistema, len(processos_finalizados))
     media_tempo_espera = calcula_media_tempo_espera(
         tempos_espera, len(processos_finalizados))
+    
+    tabela_dados = sorted(tabela_dados[1:], key=lambda x: x[0])
+    tabela_dados.insert(0, ["Pid", "AT", "BT", "CT", "TAT", "WT"])
 
     tabela_formatada = tabulate(
         tabela_dados, headers="firstrow", tablefmt="grid")
-    linha_tempo = criar_linha_do_tempo(execucoes)
+    linha_tempo = exibir_linha_do_tempo(execucoes)
 
     escreve_saida(tabela_formatada, media_tempo_sistema,
                   media_tempo_espera, linha_tempo)
@@ -237,15 +195,15 @@ def utilizar_sjf():
         tabela_dados.append([id_processo, tempo_chegada, tempo_cpu,
                             tempo_conclusao, tempo_sistema, tempo_espera])
 
-        tempo_atual = tempo_conclusao
         tempo_inicio = tempo_atual
+        tempo_atual = tempo_conclusao
         processos_inteiro.remove(processo)
         processos_finalizados.append(processo)
 
         execucoes.append(registrar_execucao(
             id_processo, tempo_inicio, tempo_conclusao))
 
-    tabela_dados = sorted(tabela_dados[1:], key=lambda x: x[1])
+    tabela_dados = sorted(tabela_dados[1:], key=lambda x: x[0])
     tabela_dados.insert(0, ["Pid", "AT", "BT", "CT", "TAT", "WT"])
 
     media_tempo_sistema = calcula_media_tempo_sistema(
@@ -255,11 +213,11 @@ def utilizar_sjf():
 
     tabela_formatada = tabulate(
         tabela_dados, headers="firstrow", tablefmt="grid")
-    linha_tempo = criar_linha_do_tempo(execucoes)
+    linha_tempo = exibir_linha_do_tempo(execucoes)
     escreve_saida(tabela_formatada, media_tempo_sistema,
                   media_tempo_espera, linha_tempo)
 
-
+# -- algoritmo round robin --
 def utiliza_round_robin():
     quantum = eval(doc.readline().strip())
     processo_dados = [linha.replace('\u00a0', '').strip()
@@ -313,9 +271,12 @@ def utiliza_round_robin():
     media_tempo_espera = calcula_media_tempo_espera(
         [row[5] for row in tabela_dados[1:]], len(tabela_dados) - 1)
 
+    tabela_dados = sorted(tabela_dados[1:], key=lambda x: x[0])
+    tabela_dados.insert(0, ["Pid", "AT", "BT", "CT", "TAT", "WT"])
+
     tabela_formatada = tabulate(
         tabela_dados, headers="firstrow", tablefmt="grid")
-    linha_tempo = criar_linha_do_tempo(execucoes)
+    linha_tempo = exibir_linha_do_tempo(execucoes)
     escreve_saida(tabela_formatada, media_tempo_sistema,
                   media_tempo_espera, linha_tempo)
 
@@ -382,10 +343,13 @@ def utiliza_prioridade():
         [row[5] for row in tabela_dados[1:]], len(tabela_dados) - 1)
     media_tempo_espera = calcula_media_tempo_espera(
         [row[6] for row in tabela_dados[1:]], len(tabela_dados) - 1)
+    
+    tabela_dados = sorted(tabela_dados[1:], key=lambda x: x[0])
+    tabela_dados.insert(0, ["Pid", "AT", "BT", "CT", "TAT", "WT"])
 
     tabela_formatada = tabulate(
         tabela_dados, headers="firstrow", tablefmt="grid")
-    linha_tempo = criar_linha_do_tempo(execucoes)
+    linha_tempo = exibir_linha_do_tempo(execucoes)
     escreve_saida(tabela_formatada, media_tempo_sistema,
                   media_tempo_espera, linha_tempo)
 
