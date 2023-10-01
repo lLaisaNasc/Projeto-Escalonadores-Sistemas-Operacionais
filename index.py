@@ -1,7 +1,7 @@
 from tabulate import tabulate
 
 # -- Ler o arquivo --
-doc = open('./arquivos-txt/in-rr-1.txt', 'r', encoding='utf8')
+doc = open('./arquivos-txt/in-fcfs-2.txt', 'r', encoding='utf8')
 nome_escalonamento = doc.readline().strip()
 
 # -- Dados do Processo --
@@ -114,9 +114,9 @@ def utiliza_first_come_first_served():
         id_processo = processo[0]
         tempo_chegada = processo[1]
         tempo_cpu = processo[2]
-        tempo_atual += tempo_cpu
 
-        tempo_inicio = tempo_conclusao
+        tempo_inicio = tempo_atual
+        tempo_atual += tempo_cpu
         tempo_conclusao = tempo_atual
         tempo_sistema = tempo_conclusao - tempo_chegada
         tempo_espera = tempo_sistema - tempo_cpu
